@@ -5,7 +5,6 @@ import java.net.Socket;
 public class Server {
 
     static int portNumer = 8000;
-
     static Socket clientSocket = null;
 
     public static void main(String[] args) {

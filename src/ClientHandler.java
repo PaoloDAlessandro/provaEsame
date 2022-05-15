@@ -4,6 +4,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.SocketException;
+import java.sql.*;
 
 public class ClientHandler implements Runnable {
 
@@ -16,12 +17,15 @@ public class ClientHandler implements Runnable {
     }
 
     public void run () {
-        this.inizializeClientHandler();
+        //this.inizializeClientHandler();
+        /*
         try {
             this.executeClientHandler();
         } catch (SocketException e) {
             System.out.println("error");
         }
+        */
+        this.collectData();
     }
 
     void inizializeClientHandler () {
@@ -73,6 +77,30 @@ public class ClientHandler implements Runnable {
             clientSocket.close();
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    void collectData() {
+        Connection con = null;
+        try {
+            Class.forName("com.mysql.jdbc.Driver");
+            con = DriverManager.getConnection(
+                    "jdbc:mysql://localhost:3006/socialyze",
+                    "root",
+                    "");
+        } catch (Exception e) {
+            System.out.println(e);
+            System.exit(-1);
+        }
+
+        try {
+            Statement stmt = con.createStatement();
+            ResultSet rs = stmt.executeQuery("select * from users");
+            while (rs.next())
+                System.out.println(rs.getInt(1) + " " + rs.getString(2) + " " + rs.getString(3));
+            con.close();
+        } catch (Exception e) {
+            System.out.println(e);
         }
     }
 
