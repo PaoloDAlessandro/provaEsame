@@ -4,28 +4,29 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.SocketException;
-import java.sql.*;
+import java.util.ArrayList;
+import com.google.gson.Gson;
+
 
 public class ClientHandler implements Runnable {
 
     Socket clientSocket;
     BufferedReader in;
     PrintWriter out;
+    static ArrayList<City> cities = new ArrayList<City>();
 
     ClientHandler (Socket clientSocket) {
         this.clientSocket = clientSocket;
     }
 
     public void run () {
-        //this.inizializeClientHandler();
-        /*
+        this.buildCities();
+        this.inizializeClientHandler();
         try {
             this.executeClientHandler();
         } catch (SocketException e) {
             System.out.println("error");
         }
-        */
-        this.collectData();
     }
 
     void inizializeClientHandler () {
@@ -47,18 +48,41 @@ public class ClientHandler implements Runnable {
     }
 
     void executeClientHandler() throws SocketException {
-        String s = "";
+        Gson gson = new Gson();
+        String s;
         while (true) {
-            try {
                 s = receive();
                 System.out.println(s);
-                out.println(s.toUpperCase());
+                try {
+                    switch (s) {
+                        default:
+                            out.println(s + " is not a command");
+                            break;
+                        case "hottest":
+                            out.println(gson.toJson(searchMaxTemp()));
+                            break;
+
+                        case "all":
+                            out.println(gson.toJson(cities));
+                            break;
+
+                        case "sorted_by_temp":
+                            sort_by_temp();
+                            out.println(gson.toJson(cities));
+                            break;
+
+                        case "sorted_by_name":
+                            sort_by_name();
+                            out.println(gson.toJson(cities));
+                        }
+
+                } catch (NullPointerException e) {
+                    System.out.println("Client: " + clientSocket.getLocalAddress() + " disconnected from the server");
+                    break;
+                }
+
                 if (s == "") break;
-            } catch (Exception e) {
-                e.printStackTrace();
             }
-        }
-        System.out.println("Client: " + clientSocket.getLocalAddress() + " disconnected from the server");
     }
 
 
@@ -67,7 +91,7 @@ public class ClientHandler implements Runnable {
         try {
             s = in.readLine();
         } catch (IOException e) {
-            tryReconnect();
+            //tryReconnect();
         }
         return s;
     }
@@ -80,28 +104,31 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    void collectData() {
-        Connection con = null;
-        try {
-            Class.forName("com.mysql.jdbc.Driver");
-            con = DriverManager.getConnection(
-                    "jdbc:mysql://localhost:3006/socialyze",
-                    "root",
-                    "");
-        } catch (Exception e) {
-            System.out.println(e);
-            System.exit(-1);
-        }
+    public void buildCities() {
+        cities.add(new City(3,"Toronto",15.9));
+        cities.add(new City(33,"Milan",25.94));
+        cities.add(new City(55,"Rome",35.4));
+    }
 
-        try {
-            Statement stmt = con.createStatement();
-            ResultSet rs = stmt.executeQuery("select * from users");
-            while (rs.next())
-                System.out.println(rs.getInt(1) + " " + rs.getString(2) + " " + rs.getString(3));
-            con.close();
-        } catch (Exception e) {
-            System.out.println(e);
-        }
+    City searchMaxTemp() {
+        sort_by_temp();
+        return cities.get(0);
+    }
+
+    void sort_by_temp() {
+        cities.sort(((o1, o2) -> {
+            if (o1.getTemp() < o2.getTemp())
+                return 1;
+            if (o1.getTemp() > o2.getTemp())
+                return -1;
+            return 0;
+        }));
+    }
+
+    void sort_by_name() {
+        cities.sort((o1, o2) -> {
+            return o1.getName().compareTo(o2.getName());
+        });
     }
 
 }
